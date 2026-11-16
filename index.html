@@ -14,8 +14,6 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2972/2972531.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- jsPDF Library for Mobile-Friendly PDF Exports -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -237,7 +235,7 @@
             <div class="flex flex-col gap-2 pt-2">
                 <button type="button" onclick="executeShareText()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs py-2.5 rounded-xl">Share Text (SMS / App)</button>
                 <button type="button" onclick="executeEmailReport()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs py-2.5 rounded-xl">Email Details</button>
-                <button type="button" onclick="executeGeneratePDF()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs py-2.5 rounded-xl">Download PDF Report (with Images)</button>
+                <button type="button" onclick="executeGeneratePDF()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs py-2.5 rounded-xl">Download PDF Report</button>
                 <button type="button" onclick="closeShareModal()" class="w-full bg-slate-950 text-slate-400 font-semibold text-xs py-2 rounded-xl mt-1">Cancel</button>
             </div>
         </div>
@@ -803,75 +801,24 @@
             window.location.href = "mailto:?subject=" + encodeURIComponent("Watch Specification: " + titleStr) + "&body=" + encodeURIComponent(txt);
         }
 
-        // Upgraded jsPDF Generator that directly downloads a PDF with embedded watch images on mobile
         function executeGeneratePDF() {
             var w = watches.find(function(item) { return item.id === Number(activeShareWatchId); });
             if (!w) return;
-            
-            var { jsPDF } = window.jspdf;
-            var doc = new jsPDF();
-
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(18);
-            doc.text("Watch Vault Record Report", 14, 20);
-
-            doc.setFontSize(14);
-            doc.setTextColor(70, 70, 70);
             var titleStr = (w.brand || '') + (w.model ? ' ' + w.model : '');
-            doc.text(titleStr, 14, 30);
-
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-
-            var y = 42;
-            var details = [
-                { label: "Reference No.", val: w.refNumber || 'N/A' },
-                { label: "Categories", val: w.categories ? w.categories.join(', ') : 'N/A' },
-                { label: "Estimated Value", val: w.currentValue ? '$' + Number(w.currentValue).toLocaleString() : 'N/A' },
-                { label: "Movement", val: w.movementType || 'N/A' },
-                { label: "Serial Number", val: w.serialNumber || 'N/A' },
-                { label: "Case Size / Lug", val: (w.caseSize || 'N/A') + ' / ' + (w.lugWidth || 'N/A') },
-                { label: "Notes", val: w.description || 'None' }
-            ];
-
-            details.forEach(function(item) {
-                doc.setFont("helvetica", "bold");
-                doc.text(item.label + ":", 14, y);
-                doc.setFont("helvetica", "normal");
-                doc.text(String(item.val), 50, y);
-                y += 7;
-            });
-
-            // Embed watch images directly into the PDF document
-            if (w.images && w.images.length > 0) {
-                y += 6;
-                doc.setFont("helvetica", "bold");
-                doc.text("Watch Images:", 14, y);
-                y += 6;
-
-                var xPos = 14;
-                w.images.forEach(function(imgSrc, index) {
-                    if (index > 0 && index % 3 === 0) {
-                        y += 42;
-                        xPos = 14;
-                    }
-                    if (y > 240) {
-                        doc.addPage();
-                        y = 20;
-                    }
-                    try {
-                        doc.addImage(imgSrc, 'JPEG', xPos, y, 38, 38);
-                        xPos += 44;
-                    } catch (err) {
-                        console.error("Could not embed image into PDF:", err);
-                    }
-                });
-            }
-
+            var pdfHtml = '<div style="font-family:sans-serif; padding:20px; max-width:600px; margin:auto;">' +
+                '<h1 style="border-bottom:2px solid #cbd5e1; padding-bottom:8px; color:#0f172a;">Watch Vault Record Report</h1>' +
+                '<h2 style="color:#475569; margin-top:16px;">' + titleStr + '</h2>' +
+                '<p><strong>Reference No.:</strong> ' + (w.refNumber || 'N/A') + '</p>' +
+                '<p><strong>Categories:</strong> ' + (w.categories ? w.categories.join(', ') : 'N/A') + '</p>' +
+                '<p><strong>Estimated Value:</strong> $' + (w.currentValue || 'N/A') + '</p>' +
+                '<p><strong>Movement:</strong> ' + (w.movementType || 'N/A') + '</p>' +
+                '<p><strong>Serial Number:</strong> ' + (w.serialNumber || 'N/A') + '</p></div>';
             closeShareModal();
-            var safeFilename = (titleStr.replace(/[^a-z0-9]/gi, '_').toLowerCase()) + '_report.pdf';
-            doc.save(safeFilename);
+            var win = window.open('', '', 'width=700,height=700');
+            win.document.write('<html><head><title>Watch Report</title></head><body>' + pdfHtml + '</body></html>');
+            win.document.close();
+            win.focus();
+            setTimeout(function() { win.print(); }, 500);
         }
 
         function exportBackup() {
@@ -953,4 +900,18 @@
                         '</div>' +
                         '<h3 class="text-base font-bold text-white hover:text-indigo-400">' + displayTitle + '</h3>' +
                         (w.refNumber ? '<p class="text-xs text-indigo-300/80 font-mono">Ref: ' + w.refNumber + '</p>' : '') +
-                        '<p class="text-xs te
+                        '<p class="text-xs text-slate-400 leading-relaxed line-clamp-2">' + (w.description || 'No description provided.') + '</p>' +
+                    '</div>' +
+                    '<div class="flex justify-between items-center px-4 pb-4 pt-2 border-t border-slate-800/80">' +
+                        '<div class="flex gap-1.5 items-center">' +
+                            '<button onclick="editWatch(' + w.id + ')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all">Edit</button>' +
+                            '<button onclick="openShareModal(' + w.id + ')" class="bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-300 text-xs font-semibold px-3 py-1.5 rounded-lg border border-indigo-800/50 transition-all">Share / PDF</button>' +
+                        '</div>' +
+                        '<div>' + moveButtons + '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+    </script>
+</body>
+</html>

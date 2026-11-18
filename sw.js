@@ -1,19 +1,19 @@
-const CACHE_NAME = 'watch-vault-cache-v1';
-const urlsToCache = [
-  './',
-  './index.html',
-  './manifest.json',
-  'https://cdn.tailwindcss.com'
-];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
-  );
+var CACHE = 'watch-vault-v2';
+var SHELL = ['./', './index.html', './manifest.json', './icon.svg'];
+self.addEventListener('install', function(e) {
+  e.waitUntil(caches.open(CACHE).then(function(c) { return c.addAll(SHELL); }).then(function() { return self.skipWaiting(); }));
 });
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => response || fetch(event.request))
-  );
+self.addEventListener('activate', function(e) {
+  e.waitUntil(caches.keys().then(function(keys) {
+    return Promise.all(keys.filter(function(k) { return k !== CACHE; }).map(function(k) { return caches.delete(k); }));
+  }).then(function() { return self.clients.claim(); }));
+});
+self.addEventListener('fetch', function(e) {
+  if (e.request.method !== 'GET' || e.request.url.indexOf('http') !== 0) return;
+  e.respondWith(fetch(e.request).then(function(r) {
+    if (r && (r.ok || r.type === 'opaque')) { var copy = r.clone(); caches.open(CACHE).then(function(c) { return c.put(e.request, copy); }).catch(function() {}); }
+    return r;
+  }).catch(function() {
+    return caches.match(e.request).then(function(m) { return m || caches.match('./index.html'); });
+  }));
 });

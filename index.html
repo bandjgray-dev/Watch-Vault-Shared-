@@ -18,6 +18,10 @@
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        details.sec > summary { list-style: none; cursor: pointer; }
+        details.sec > summary::-webkit-details-marker { display: none; }
+        details.sec[open] > summary .chev { transform: rotate(90deg); }
+        .dragging { opacity: .85; box-shadow: 0 12px 34px rgba(0,0,0,.65); outline: 2px solid #6366f1; position: relative; z-index: 30; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen pb-12 font-sans antialiased">
@@ -31,38 +35,52 @@
             
             <!-- Centered Circular Add Watch Pill -->
             <div class="flex flex-col items-center">
-                <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">Add Watch</span>
-                <button onclick="openModal()" class="w-8 h-8 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-base rounded-full shadow-md active:scale-95 transition-all flex items-center justify-center">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Add Watch</span>
+                <button onclick="openModal()" class="w-11 h-11 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-base rounded-full shadow-md active:scale-95 transition-all flex items-center justify-center">
                     +
                 </button>
             </div>
 
             <!-- Collection Value Stack (Right Side) -->
             <div class="flex flex-col items-center text-center">
-                <span class="block text-[9px] font-bold uppercase tracking-wider text-slate-500">Collection Value</span>
+                <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Collection Value</span>
                 <span id="headerCollectionVal" class="text-emerald-400 font-bold text-xs sm:text-sm">$0</span>
             </div>
         </header>
 
         <!-- Backup & Restore Bar -->
         <div class="grid grid-cols-2 gap-2">
-            <button onclick="exportBackup()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-medium text-xs py-2 rounded-xl text-center active:scale-95 transition-all">
+            <button onclick="exportBackup()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-medium text-sm py-3 rounded-xl text-center active:scale-95 transition-all">
                 📥 Export Backup
             </button>
-            <button onclick="document.getElementById('importFile').click()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-medium text-xs py-2 rounded-xl text-center active:scale-95 transition-all">
+            <button onclick="document.getElementById('importFile').click()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-medium text-sm py-3 rounded-xl text-center active:scale-95 transition-all">
                 📤 Import Backup
             </button>
             <input type="file" id="importFile" accept=".json" class="hidden" onchange="importBackup(event)">
         </div>
+        <div id="backupStatus" class="text-xs text-center text-slate-400 -mt-2"></div>
+
+        <!-- Search & Sort -->
+        <div class="flex gap-2">
+            <input id="searchBox" type="search" placeholder="Search watches..." oninput="onSearch(this.value)" class="flex-1 min-w-0 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+            <select id="sortSelect" onchange="onSort(this.value)" class="bg-slate-900 border border-slate-800 rounded-xl px-2 py-2.5 text-xs text-slate-200 focus:outline-none">
+                <option value="custom">My order</option>
+                <option value="value-desc">Value: high to low</option>
+                <option value="value-asc">Value: low to high</option>
+                <option value="brand">Brand A-Z</option>
+                <option value="added">Newest added</option>
+                <option value="purchase">Purchase date</option>
+            </select>
+        </div>
 
         <!-- Horizontal Scroll Category Bar -->
         <div class="flex gap-2 overflow-x-auto no-scrollbar py-1" id="catFilters">
-            <button onclick="setFilter('All', this)" class="filter-btn active bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded-full whitespace-nowrap border border-indigo-500 shadow-sm transition-all">All</button>
-            <button onclick="setFilter('Diver', this)" class="filter-btn bg-slate-900 text-slate-400 hover:text-slate-200 text-xs font-semibold px-4 py-2 rounded-full whitespace-nowrap border border-slate-800 shadow-sm transition-all">Diver</button>
-            <button onclick="setFilter('Dress', this)" class="filter-btn bg-slate-900 text-slate-400 hover:text-slate-200 text-xs font-semibold px-4 py-2 rounded-full whitespace-nowrap border border-slate-800 shadow-sm transition-all">Dress</button>
-            <button onclick="setFilter('Chronograph', this)" class="filter-btn bg-slate-900 text-slate-400 hover:text-slate-200 text-xs font-semibold px-4 py-2 rounded-full whitespace-nowrap border border-slate-800 shadow-sm transition-all">Chronograph</button>
-            <button onclick="setFilter('Field', this)" class="filter-btn bg-slate-900 text-slate-400 hover:text-slate-200 text-xs font-semibold px-4 py-2 rounded-full whitespace-nowrap border border-slate-800 shadow-sm transition-all">Field</button>
-            <button onclick="setFilter('Vintage', this)" class="filter-btn bg-slate-900 text-slate-400 hover:text-slate-200 text-xs font-semibold px-4 py-2 rounded-full whitespace-nowrap border border-slate-800 shadow-sm transition-all">Vintage</button>
+            <button onclick="setFilter('All', this)" class="filter-btn active bg-indigo-600 text-white text-xs font-semibold px-4 py-2.5 rounded-full whitespace-nowrap border border-indigo-500 shadow-sm transition-all">All</button>
+            <button onclick="setFilter('Diver', this)" class="filter-btn bg-slate-900 text-slate-400 hover:text-slate-200 text-xs font-semibold px-4 py-2.5 rounded-full whitespace-nowrap border border-slate-800 shadow-sm transition-all">Diver</button>
+            <button onclick="setFilter('Dress', this)" class="filter-btn bg-slate-900 text-slate-400 hover:text-slate-200 text-xs font-semibold px-4 py-2.5 rounded-full whitespace-nowrap border border-slate-800 shadow-sm transition-all">Dress</button>
+            <button onclick="setFilter('Chronograph', this)" class="filter-btn bg-slate-900 text-slate-400 hover:text-slate-200 text-xs font-semibold px-4 py-2.5 rounded-full whitespace-nowrap border border-slate-800 shadow-sm transition-all">Chronograph</button>
+            <button onclick="setFilter('Field', this)" class="filter-btn bg-slate-900 text-slate-400 hover:text-slate-200 text-xs font-semibold px-4 py-2.5 rounded-full whitespace-nowrap border border-slate-800 shadow-sm transition-all">Field</button>
+            <button onclick="setFilter('Vintage', this)" class="filter-btn bg-slate-900 text-slate-400 hover:text-slate-200 text-xs font-semibold px-4 py-2.5 rounded-full whitespace-nowrap border border-slate-800 shadow-sm transition-all">Vintage</button>
         </div>
 
         <!-- Watch Cards Container -->
@@ -70,25 +88,27 @@
     </div>
     <!-- Add / Edit Watch Modal -->
     <div id="watchModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-slate-900 border border-slate-800 text-slate-100 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
+        <div id="watchModalInner" class="bg-slate-900 border border-slate-800 text-slate-100 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
             <h2 id="modalTitle" class="text-lg font-bold text-white mb-4">Add Watch</h2>
             <form id="watchForm" onsubmit="handleFormSubmit(event)" class="space-y-3">
                 <input type="hidden" id="watchId">
-                <div class="grid grid-cols-2 gap-3">
+                
+                <details class="sec bg-slate-950/50 border border-slate-800 rounded-2xl" open><summary class="flex justify-between items-center px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-200"><span>Basics</span><span class="chev text-slate-400 transition-transform">&rsaquo;</span></summary><div class="px-4 pb-4 space-y-3">
+<div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Brand</label>
-                        <input type="text" id="brand" required placeholder="Rolex" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Brand</label>
+                        <input type="text" id="brand" required placeholder="Rolex" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Model (Optional)</label>
-                        <input type="text" id="model" placeholder="Submariner" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Model (Optional)</label>
+                        <input type="text" id="model" placeholder="Submariner" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                 </div>
                 <!-- Multiple Categories Checkbox Selection & Custom Add -->
                 <div>
                     <div class="flex justify-between items-center mb-1">
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Categories (Select Multiple)</label>
-                        <button type="button" onclick="addNewCategoryPrompt()" class="text-indigo-400 hover:text-indigo-300 text-[10px] font-semibold">+ Add Custom Category</button>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Categories (Select Multiple)</label>
+                        <button type="button" onclick="addNewCategoryPrompt()" class="text-indigo-400 hover:text-indigo-300 text-[11px] font-semibold">+ Add Custom Category</button>
                     </div>
                     <div id="categoryCheckboxesContainer" class="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800 max-h-32 overflow-y-auto">
                         <!-- Populated dynamically -->
@@ -96,93 +116,128 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Reference Number</label>
-                        <input type="text" id="refNumber" placeholder="126610LN" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Reference Number</label>
+                        <input type="text" id="refNumber" placeholder="126610LN" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Estimated Value ($)</label>
-                        <input type="number" id="currentValue" placeholder="14500" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Estimated Value ($)</label>
+                        <input type="number" id="currentValue" placeholder="14500" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                 </div>
 
 
-                <div class="grid grid-cols-2 gap-3">
+                
+                </div></details>
+
+                <details class="sec bg-slate-950/50 border border-slate-800 rounded-2xl"><summary class="flex justify-between items-center px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-200"><span>Specifications</span><span class="chev text-slate-400 transition-transform">&rsaquo;</span></summary><div class="px-4 pb-4 space-y-3">
+<div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Movement</label>
-                        <input type="text" id="movementType" placeholder="Automatic 3235" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Movement</label>
+                        <input type="text" id="movementType" placeholder="Automatic 3235" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Serial Number</label>
-                        <input type="text" id="serialNumber" placeholder="X829F114" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Case Size</label>
-                        <input type="text" id="caseSize" placeholder="41mm" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Lug Width</label>
-                        <input type="text" id="lugWidth" placeholder="20mm" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Serial Number</label>
+                        <input type="text" id="serialNumber" placeholder="X829F114" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Crystal Type</label>
-                        <input type="text" id="crystalType" placeholder="Sapphire" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Case Size</label>
+                        <input type="text" id="caseSize" placeholder="41mm" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Band Material</label>
-                        <input type="text" id="bandMaterial" placeholder="Steel Oyster" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Lug Width</label>
+                        <input type="text" id="lugWidth" placeholder="20mm" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Water Resistance</label>
-                        <input type="text" id="waterResistance" placeholder="300m" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Crystal Type</label>
+                        <input type="text" id="crystalType" placeholder="Sapphire" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Case Material</label>
-                        <input type="text" id="caseMaterial" placeholder="Stainless Steel" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Band Material</label>
+                        <input type="text" id="bandMaterial" placeholder="Steel Oyster" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Purchase Date</label>
-                        <input type="date" id="purchaseDate" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Water Resistance</label>
+                        <input type="text" id="waterResistance" placeholder="300m" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Purchase Price ($)</label>
-                        <input type="number" id="purchasePrice" placeholder="10200" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Case Material</label>
+                        <input type="text" id="caseMaterial" placeholder="Stainless Steel" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+                
+                </div></details>
+
+                <details class="sec bg-slate-950/50 border border-slate-800 rounded-2xl"><summary class="flex justify-between items-center px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-200"><span>Purchase & Dates</span><span class="chev text-slate-400 transition-transform">&rsaquo;</span></summary><div class="px-4 pb-4 space-y-3">
+<div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Purchase Date</label>
+                        <input type="date" id="purchaseDate" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Purchase Price ($)</label>
+                        <input type="number" id="purchasePrice" placeholder="10200" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Sale Price ($)</label>
-                        <input type="number" id="salePrice" placeholder="15000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Sale Price ($)</label>
+                        <input type="number" id="salePrice" placeholder="15000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Mfg Date / Year</label>
-                        <input type="text" id="dateOfManufacture" placeholder="2022" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Mfg Date / Year</label>
+                        <input type="text" id="dateOfManufacture" placeholder="2022" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                 </div>
-                <div>
+                
+                </div></details>
+
+                <details class="sec bg-slate-950/50 border border-slate-800 rounded-2xl" open><summary class="flex justify-between items-center px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-200"><span>Custom Fields</span><span class="chev text-slate-400 transition-transform">&rsaquo;</span></summary><div class="px-4 pb-4 space-y-3">
+<div>
                     <div class="flex justify-between items-center mb-1">
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Custom Fields</label>
-                        <button type="button" onclick="addCustomFieldPrompt()" class="text-indigo-400 hover:text-indigo-300 text-[10px] font-semibold">+ Add Custom Field</button>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Custom Fields</label>
+                        <button type="button" onclick="addCustomFieldPrompt()" class="text-indigo-400 hover:text-indigo-300 text-[11px] font-semibold">+ Add Custom Field</button>
                     </div>
                     <div id="customFieldsContainer" class="space-y-2"></div>
                 </div>
-                <div>
-                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Notes</label>
-                    <textarea id="description" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"></textarea>
+                
+                </div></details>
+
+                <details class="sec bg-slate-950/50 border border-slate-800 rounded-2xl"><summary class="flex justify-between items-center px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-200"><span>Service History</span><span class="chev text-slate-400 transition-transform">&rsaquo;</span></summary><div class="px-4 pb-4 space-y-3">
+<div class="grid grid-cols-2 gap-2">
+                    <div><label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Date</label><input type="date" id="svcDate" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"></div>
+                    <div><label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Cost ($)</label><input type="number" id="svcCost" placeholder="350" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"></div>
                 </div>
-                <div>
-                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Images (First image is cover)</label>
+                <div><label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">What was done</label><input type="text" id="svcNote" placeholder="Full service, new crystal" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"></div>
+                <div class="flex items-end gap-2">
+                    <div class="flex-1"><label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Next service due (optional)</label><input type="date" id="svcNext" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"></div>
+                    <button type="button" onclick="addServiceEntry()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl">Add</button>
+                </div>
+                <div id="serviceList" class="space-y-2"></div>
+                </div></details>
+
+                <details class="sec bg-slate-950/50 border border-slate-800 rounded-2xl" open><summary class="flex justify-between items-center px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-200"><span>Notes</span><span class="chev text-slate-400 transition-transform">&rsaquo;</span></summary><div class="px-4 pb-4 space-y-3">
+<div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Notes</label>
+                    <textarea id="description" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"></textarea>
+                </div>
+                
+                </div></details>
+
+                <details class="sec bg-slate-950/50 border border-slate-800 rounded-2xl" open><summary class="flex justify-between items-center px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-200"><span>Photos</span><span class="chev text-slate-400 transition-transform">&rsaquo;</span></summary><div class="px-4 pb-4 space-y-3">
+<div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Images (First image is cover)</label>
                     <input type="file" id="imgs" accept="image/*" multiple onchange="handleImgs(event)" class="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500">
                     <div id="imagePreviewContainer" class="flex gap-2 overflow-x-auto py-2"></div>
                 </div>
-                <div class="flex justify-between items-center pt-3 border-t border-slate-800 mt-2">
+                
+                </div></details>
+<div class="sticky bottom-0 -mx-6 -mb-6 px-6 py-4 bg-slate-900 border-t border-slate-800 flex justify-between items-center mt-2 z-10">
                     <button type="button" id="modalDeleteBtn" onclick="deleteCurrentEditingWatch()" class="hidden bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold text-xs px-3 py-2.5 rounded-xl transition-all">Delete Watch</button>
                     <div class="flex justify-end gap-2 ml-auto">
                         <button type="button" onclick="closeModal()" class="bg-slate-800 text-slate-300 font-semibold text-xs px-4 py-2.5 rounded-xl">Cancel</button>
@@ -196,7 +251,7 @@
     <div id="detailModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm z-50 items-center justify-center p-4 overflow-y-auto">
         <div class="bg-slate-900 border border-slate-800 text-slate-100 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-4">
             <div class="flex justify-end items-center">
-                <button onclick="closeDetailModal()" class="bg-slate-800 text-slate-400 hover:text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">&times;</button>
+                <button onclick="closeDetailModal()" class="bg-slate-800 text-slate-400 hover:text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm">&times;</button>
             </div>
             
             <!-- Image Carousel / Gallery -->
@@ -209,18 +264,20 @@
             </div>
 
             <!-- Specs Grid -->
-            <div class="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-2xl border border-slate-800/80 text-xs">
-                <div><span class="text-slate-500 block uppercase text-[9px] font-bold">Estimated Value</span><span id="detVal" class="text-emerald-400 font-bold text-sm"></span></div>
-                <div><span class="text-slate-500 block uppercase text-[9px] font-bold">Movement</span><span id="detMovement" class="text-slate-200 font-medium"></span></div>
-                <div><span class="text-slate-500 block uppercase text-[9px] font-bold">Reference No.</span><span id="detRefNumber" class="text-slate-300 font-mono"></span></div>
-                <div><span class="text-slate-500 block uppercase text-[9px] font-bold">Serial Number</span><span id="detSerial" class="text-slate-300 font-mono"></span></div>
+            <div class="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-2xl border border-slate-800/80 text-sm">
+                <div><span class="text-slate-400 block uppercase text-[11px] font-bold">Estimated Value</span><span id="detVal" class="text-emerald-400 font-bold text-sm"></span></div>
+                <div><span class="text-slate-400 block uppercase text-[11px] font-bold">Movement</span><span id="detMovement" class="text-slate-200 font-medium"></span></div>
+                <div><span class="text-slate-400 block uppercase text-[11px] font-bold">Reference No.</span><span id="detRefNumber" class="text-slate-300 font-mono"></span></div>
+                <div><span class="text-slate-400 block uppercase text-[11px] font-bold">Serial Number</span><span id="detSerial" class="text-slate-300 font-mono"></span></div>
             </div>
 
             <div id="detSpecsSection"></div>
 
+            <div id="detServiceSection"></div>
+
             <div>
-                <h4 class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Notes</h4>
-                <p id="detDesc" class="text-xs text-slate-300 leading-relaxed bg-slate-950 p-3 rounded-2xl border border-slate-800/80"></p>
+                <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Notes</h4>
+                <p id="detDesc" class="text-sm text-slate-300 leading-relaxed bg-slate-950 p-3 rounded-2xl border border-slate-800/80"></p>
             </div>
 
             <div class="flex gap-2 pt-2">
@@ -230,11 +287,27 @@
         </div>
     </div>
 
-    <!-- Lightbox Modal -->
-    <div id="lightboxModal" class="hidden fixed inset-0 bg-black/95 z-[100] items-center justify-center p-2" onclick="closeLightbox()">
-        <button class="absolute top-4 right-4 bg-slate-800 text-white w-10 h-10 rounded-full font-bold text-lg flex items-center justify-center shadow-lg">&times;</button>
-        <img id="lightboxImg" src="" class="max-w-full max-h-full object-contain rounded-xl shadow-2xl">
+    <!-- Lightbox Modal (swipe / pinch) -->
+    <div id="lightboxModal" class="hidden fixed inset-0 bg-black/95 z-[100] items-center justify-center overflow-hidden" style="touch-action:none">
+        <button type="button" onclick="closeLightbox()" class="absolute top-4 right-4 bg-slate-800 text-white w-11 h-11 rounded-full font-bold text-xl flex items-center justify-center shadow-lg z-10">&times;</button>
+        <div id="lbCount" class="absolute top-6 left-1/2 -translate-x-1/2 text-sm text-slate-300 z-10"></div>
+        <button type="button" id="lbPrev" onclick="lbStep(-1)" class="absolute left-2 top-1/2 -translate-y-1/2 bg-slate-800/70 text-white w-10 h-10 rounded-full text-xl z-10">&lsaquo;</button>
+        <button type="button" id="lbNext" onclick="lbStep(1)" class="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-800/70 text-white w-10 h-10 rounded-full text-xl z-10">&rsaquo;</button>
+        <img id="lightboxImg" src="" draggable="false" class="max-w-full max-h-full object-contain select-none" style="touch-action:none">
     </div>
+
+    <!-- In-app dialog & toasts -->
+    <div id="uiDialog" class="hidden fixed inset-0 bg-black/70 z-[300] items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm p-6 shadow-2xl space-y-4">
+            <p id="uiDialogMsg" class="text-sm text-slate-200 whitespace-pre-line"></p>
+            <input id="uiDialogInput" type="text" class="hidden w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+            <div class="flex gap-2 justify-end">
+                <button id="uiDialogCancel" type="button" class="bg-slate-800 text-slate-300 font-semibold text-sm px-4 py-2.5 rounded-xl">Cancel</button>
+                <button id="uiDialogOk" type="button" class="bg-indigo-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl">OK</button>
+            </div>
+        </div>
+    </div>
+    <div id="toastBox" class="fixed left-0 right-0 bottom-4 z-[400] flex flex-col items-center gap-2 px-4 pointer-events-none"></div>
 
     <!-- Share Modal -->
     <div id="shareModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 items-center justify-center p-4">
@@ -285,6 +358,9 @@
             var cf = {};
             if (w.customFields && typeof w.customFields === 'object') Object.keys(w.customFields).forEach(function(k) { cf[k] = String(w.customFields[k]); });
             out.customFields = cf;
+            out.serviceLog = Array.isArray(w.serviceLog) ? w.serviceLog.filter(function(e) { return e && typeof e === 'object'; }).map(function(e) {
+                return { id: Number(e.id) || Date.now(), date: String(e.date || ''), note: String(e.note || ''), cost: String(e.cost || ''), next: String(e.next || '') };
+            }) : [];
             out.images = Array.isArray(w.images) ? w.images.filter(function(u) { return typeof u === 'string' && /^(data:image\/|https?:\/\/)/i.test(u); }) : [];
             return out;
         }
@@ -393,7 +469,7 @@
                 return true;
             } catch (err) {
                 console.error("IndexedDB save error:", err);
-                alert("Could not save your changes (storage may be full). Export a backup and free some space.");
+                toast("Could not save your changes (storage may be full). Export a backup and free some space.");
                 return false;
             }
         }
@@ -431,6 +507,9 @@
             renderTempImagePreviews();
             renderCategoryCheckboxes([]);
             renderCustomFields({});
+            currentTempService = [];
+            renderServiceList();
+            document.getElementById('watchModalInner').scrollTop = 0;
             document.getElementById('modalDeleteBtn').classList.add('hidden');
             document.getElementById('watchModal').classList.remove('hidden');
             document.getElementById('watchModal').classList.add('flex');
@@ -469,23 +548,23 @@
             var c = document.getElementById('customFieldsContainer');
             if (!c) return;
             if (!customFieldDefs.length) {
-                c.innerHTML = '<p class="text-[10px] text-slate-500">No custom fields yet. Tap "+ Add Custom Field" to create one.</p>';
+                c.innerHTML = '<p class="text-[11px] text-slate-400">No custom fields yet. Tap "+ Add Custom Field" to create one.</p>';
                 return;
             }
             c.innerHTML = customFieldDefs.map(function(name, i) {
                 return '<div><div class="flex justify-between items-center mb-1">' +
-                    '<label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">' + esc(name) + '</label>' +
-                    '<button type="button" onclick="removeCustomField(' + i + ')" class="text-red-400 hover:text-red-300 text-[10px] font-semibold">Remove field</button></div>' +
-                    '<input type="text" data-cf="' + esc(name) + '" value="' + esc(values[name] || '') + '" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"></div>';
+                    '<label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">' + esc(name) + '</label>' +
+                    '<button type="button" onclick="removeCustomField(' + i + ')" class="text-red-400 hover:text-red-300 text-[11px] font-semibold">Remove field</button></div>' +
+                    '<input type="text" data-cf="' + esc(name) + '" value="' + esc(values[name] || '') + '" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"></div>';
             }).join('');
         }
 
-        function addCustomFieldPrompt() {
-            var name = prompt("Enter new field name (e.g. Warranty Expiry):");
+        async function addCustomFieldPrompt() {
+            var name = await uiPrompt("New field name (e.g. Warranty Expiry):", "Field name");
             if (!name) return;
             name = name.trim().slice(0, 40);
             if (!name) return;
-            if (customFieldDefs.some(function(n) { return n.toLowerCase() === name.toLowerCase(); })) { alert("That field already exists."); return; }
+            if (customFieldDefs.some(function(n) { return n.toLowerCase() === name.toLowerCase(); })) { toast("That field already exists."); return; }
             var values = readCustomFieldValues();
             customFieldDefs.push(name);
             saveVaultData();
@@ -495,7 +574,7 @@
         async function removeCustomField(i) {
             var name = customFieldDefs[i];
             if (name === undefined) return;
-            if (!confirm('Remove the field "' + name + '"? Its saved values will be deleted from ALL watches.')) return;
+            if (!(await uiConfirm('Remove the field "' + name + '"? Its saved values will be deleted from ALL watches.', 'Remove', true))) return;
             var values = readCustomFieldValues();
             delete values[name];
             customFieldDefs.splice(i, 1);
@@ -505,8 +584,8 @@
             render();
         }
 
-        function addNewCategoryPrompt() {
-            var newCat = prompt("Enter new category name:");
+        async function addNewCategoryPrompt() {
+            var newCat = await uiPrompt("New category name:", "Category name");
             if (newCat && newCat.trim() !== '') {
                 var formatted = newCat.trim();
                 if (!allCategories.includes(formatted)) {
@@ -527,7 +606,7 @@
             var cats = allCategories.slice();
             watches.forEach(function(w) { (w.categories || []).forEach(function(c) { if (cats.indexOf(c) === -1) cats.push(c); }); });
             if (activeCategoryFilter !== 'All' && cats.indexOf(activeCategoryFilter) === -1) activeCategoryFilter = 'All';
-            var base = ' text-xs font-semibold px-4 py-2 rounded-full whitespace-nowrap border shadow-sm transition-all';
+            var base = ' text-xs font-semibold px-4 py-2.5 rounded-full whitespace-nowrap border shadow-sm transition-all';
             function btn(cat) {
                 var on = activeCategoryFilter === cat;
                 return '<button data-cat="' + esc(cat) + '" onclick="setFilter(this.dataset.cat, this)" class="filter-btn ' + (on ? 'active bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200') + base + '">' + esc(cat) + '</button>';
@@ -538,9 +617,9 @@
         function setFilter(category, element) {
             activeCategoryFilter = category;
             document.querySelectorAll('.filter-btn').forEach(function(btn) {
-                btn.className = 'filter-btn bg-slate-900 text-slate-400 hover:text-slate-200 text-xs font-semibold px-4 py-2 rounded-full whitespace-nowrap border border-slate-800 shadow-sm transition-all';
+                btn.className = 'filter-btn bg-slate-900 text-slate-400 hover:text-slate-200 text-xs font-semibold px-4 py-2.5 rounded-full whitespace-nowrap border border-slate-800 shadow-sm transition-all';
             });
-            element.className = 'filter-btn active bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded-full whitespace-nowrap border border-indigo-500 shadow-sm transition-all';
+            element.className = 'filter-btn active bg-indigo-600 text-white text-xs font-semibold px-4 py-2.5 rounded-full whitespace-nowrap border border-indigo-500 shadow-sm transition-all';
             render();
         }
 
@@ -575,27 +654,31 @@
             results.forEach(function(r) { if (r) currentTempImages.push(r); else failed++; });
             input.value = '';
             renderTempImagePreviews();
-            if (failed) alert(failed + " image(s) couldn't be read (unsupported format?) and were skipped.");
+            if (failed) toast(failed + " image(s) couldn't be read (unsupported format?) and were skipped.");
         }
 
         function renderTempImagePreviews() {
             var container = document.getElementById('imagePreviewContainer');
-            if(!container) return;
-            container.innerHTML = currentTempImages.map(function(imgSrc, index) {
-                var leftBtn = index > 0 ? '<button type="button" onclick="moveTempImage(' + index + ', -1)" class="bg-slate-800/80 hover:bg-slate-700 text-white w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold">‹</button>' : '';
-                var rightBtn = index < currentTempImages.length - 1 ? '<button type="button" onclick="moveTempImage(' + index + ', 1)" class="bg-slate-800/80 hover:bg-slate-700 text-white w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold">›</button>' : '';
-
-                return '<div class="relative w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 flex flex-col items-center justify-between p-1">' +
-                    '<img src="' + imgSrc + '" class="absolute inset-0 w-full h-full object-cover opacity-80">' +
-                    '<div class="relative z-10 w-full flex justify-end">' +
-                        '<button type="button" onclick="removeTempImage(' + index + ')" class="bg-red-600 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shadow">&times;</button>' +
-                    '</div>' +
-                    '<div class="relative z-10 w-full flex justify-between px-1 pb-0.5">' +
-                        leftBtn +
-                        rightBtn +
-                    '</div>' +
-                '</div>';
+            if (!container) return;
+            var n = currentTempImages.length;
+            var ab = 'bg-slate-900/85 text-white w-8 h-8 rounded-lg flex items-center justify-center text-lg font-bold';
+            container.innerHTML = currentTempImages.map(function(src, i) {
+                return '<div class="relative w-28 h-28 flex-shrink-0 rounded-xl overflow-hidden border ' + (i === 0 ? 'border-indigo-500' : 'border-slate-700') + ' bg-slate-950">' +
+                    '<img src="' + esc(src) + '" class="absolute inset-0 w-full h-full object-cover">' +
+                    (i === 0 ? '<span class="absolute top-1 left-1 bg-indigo-600 text-white text-[11px] font-bold px-2 py-1 rounded-lg">COVER</span>'
+                             : '<button type="button" onclick="setCoverTemp(' + i + ')" class="absolute top-1 left-1 bg-black/70 text-white text-[11px] font-bold px-2 py-1 rounded-lg">&#9733; Cover</button>') +
+                    '<button type="button" onclick="removeTempImage(' + i + ')" class="absolute top-1 right-1 bg-red-600 text-white w-7 h-7 rounded-full text-base font-bold flex items-center justify-center">&times;</button>' +
+                    '<div class="absolute bottom-1 left-1 right-1 flex justify-between">' +
+                        (i > 0 ? '<button type="button" onclick="moveTempImage(' + i + ', -1)" class="' + ab + '">&lsaquo;</button>' : '<span></span>') +
+                        (i < n - 1 ? '<button type="button" onclick="moveTempImage(' + i + ', 1)" class="' + ab + '">&rsaquo;</button>' : '<span></span>') +
+                    '</div></div>';
             }).join('');
+        }
+
+        function setCoverTemp(i) {
+            var it = currentTempImages.splice(i, 1)[0];
+            currentTempImages.unshift(it);
+            renderTempImagePreviews();
         }
 
         function moveTempImage(index, direction) {
@@ -642,6 +725,7 @@
                 dateOfManufacture: document.getElementById('dateOfManufacture').value,
                 description: document.getElementById('description').value,
                 customFields: readCustomFieldValues(),
+                serviceLog: (flushServiceInputs(), currentTempService.slice()),
                 images: currentTempImages.slice()
             };
 
@@ -656,6 +740,7 @@
             closeModal();
             renderCategoryFilters();
             render();
+            toast('Watch saved');
         }
     </script>
     <script>
@@ -689,15 +774,16 @@
             ].concat(customFieldDefs.map(function(n) { return { label: n, val: (w.customFields || {})[n] }; })).filter(function(s) { return s.val; });
 
             if (specsData.length) {
-                specSec.innerHTML = '<h4 class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 mt-3">Additional Specifications</h4>' +
-                    '<div class="grid grid-cols-2 gap-1.5 bg-slate-950 p-3 rounded-2xl border border-slate-800/80 text-xs">' +
+                specSec.innerHTML = '<h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1 mt-3">Additional Specifications</h4>' +
+                    '<div class="grid grid-cols-2 gap-1.5 bg-slate-950 p-3 rounded-2xl border border-slate-800/80 text-sm">' +
                     specsData.map(function(s) {
-                        return '<div><span class="text-slate-500 block uppercase text-[9px] font-bold">' + esc(s.label) + '</span><span class="text-slate-200">' + esc(s.val) + '</span></div>';
+                        return '<div><span class="text-slate-400 block uppercase text-[11px] font-bold">' + esc(s.label) + '</span><span class="text-slate-200">' + esc(s.val) + '</span></div>';
                     }).join('') + '</div>';
             } else {
                 specSec.innerHTML = '';
             }
 
+            renderDetailService(w);
             var imgContainer = document.getElementById('detImagesContainer');
             if (w.images && w.images.length) {
                 currentDetailImages = w.images;
@@ -743,22 +829,95 @@
             var c = document.getElementById('detImagesContainer');
             c.scrollTo({ left: k * c.clientWidth, behavior: 'smooth' });
         }
-        function openLightboxAt(i) { if (currentDetailImages[i]) openLightbox(currentDetailImages[i]); }
-
+        var lb = { list: [], idx: 0, scale: 1, tx: 0, ty: 0 }, lbPtrs = {}, lbG = null, lbLastTap = 0;
+        function lbDist() {
+            var k = Object.keys(lbPtrs);
+            if (k.length < 2) return 1;
+            var a = lbPtrs[k[0]], b = lbPtrs[k[1]];
+            return Math.hypot(a.x - b.x, a.y - b.y) || 1;
+        }
+        function lbApply() {
+            document.getElementById('lightboxImg').style.transform = 'translate(' + lb.tx + 'px,' + lb.ty + 'px) scale(' + lb.scale + ')';
+        }
+        function lbReset() { lb.scale = 1; lb.tx = 0; lb.ty = 0; lbApply(); }
+        function lbShow() {
+            document.getElementById('lightboxImg').src = lb.list[lb.idx];
+            document.getElementById('lbCount').textContent = lb.list.length > 1 ? (lb.idx + 1) + ' / ' + lb.list.length : '';
+            document.getElementById('lbPrev').style.visibility = lb.idx > 0 ? 'visible' : 'hidden';
+            document.getElementById('lbNext').style.visibility = lb.idx < lb.list.length - 1 ? 'visible' : 'hidden';
+            lbReset();
+        }
+        function lbStep(d) {
+            var n = lb.idx + d;
+            if (n < 0 || n >= lb.list.length) return;
+            lb.idx = n; lbShow();
+        }
+        function openLightboxAt(i) {
+            if (!currentDetailImages[i]) return;
+            lb.list = currentDetailImages.slice(); lb.idx = i;
+            openLightbox(currentDetailImages[i]);
+        }
         function openLightbox(imgSrc) {
+            if (!lb.list.length) { lb.list = [imgSrc]; lb.idx = 0; }
             pushModalState();
-            document.getElementById('lightboxImg').src = imgSrc;
+            lbShow();
             var box = document.getElementById('lightboxModal');
             box.classList.remove('hidden');
             box.classList.add('flex');
         }
-
         function closeLightbox() {
             var box = document.getElementById('lightboxModal');
             box.classList.add('hidden');
             box.classList.remove('flex');
+            lb.list = []; lbPtrs = {}; lbG = null;
             schedulePopModalState();
         }
+        (function() {
+            var m = document.getElementById('lightboxModal');
+            m.addEventListener('pointerdown', function(e) {
+                if (e.target.closest('button')) return;
+                lbPtrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+                lbG = { x0: e.clientX, y0: e.clientY, tx0: lb.tx, ty0: lb.ty, d0: lbDist(), s0: lb.scale, moved: false, target: e.target };
+            });
+            m.addEventListener('pointermove', function(e) {
+                if (!lbPtrs[e.pointerId] || !lbG) return;
+                lbPtrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+                if (Object.keys(lbPtrs).length >= 2) {
+                    lb.scale = Math.min(5, Math.max(1, lbG.s0 * lbDist() / lbG.d0)); lbG.moved = true; lbApply();
+                } else {
+                    var dx = e.clientX - lbG.x0, dy = e.clientY - lbG.y0;
+                    if (Math.abs(dx) + Math.abs(dy) > 10) lbG.moved = true;
+                    if (lb.scale > 1) { lb.tx = lbG.tx0 + dx; lb.ty = lbG.ty0 + dy; lbApply(); }
+                }
+            });
+            function end(e) {
+                if (!lbPtrs[e.pointerId]) return;
+                var g = lbG;
+                delete lbPtrs[e.pointerId];
+                var left = Object.keys(lbPtrs);
+                if (left.length) {
+                    var p = lbPtrs[left[0]];
+                    lbG = { x0: p.x, y0: p.y, tx0: lb.tx, ty0: lb.ty, d0: 1, s0: lb.scale, moved: true, target: g && g.target };
+                    return;
+                }
+                lbG = null;
+                if (!g) return;
+                if (lb.scale <= 1.05) lbReset();
+                if (e.type !== 'pointerup') return;
+                var dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+                if (lb.scale <= 1 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+                    lbStep(dx < 0 ? 1 : -1);
+                } else if (!g.moved) {
+                    var now = Date.now();
+                    if (g.target && g.target.id === 'lightboxImg') {
+                        if (now - lbLastTap < 300) { if (lb.scale > 1) lbReset(); else { lb.scale = 2.5; lbApply(); } lbLastTap = 0; }
+                        else lbLastTap = now;
+                    } else closeLightbox();
+                }
+            }
+            m.addEventListener('pointerup', end);
+            m.addEventListener('pointercancel', end);
+        })();
 
         function editWatch(id) {
             var w = watches.find(function(item) { return item.id === Number(id); });
@@ -791,6 +950,9 @@
 
             renderCategoryCheckboxes(w.categories || []);
             renderCustomFields(w.customFields);
+            currentTempService = (w.serviceLog || []).map(function(e) { return Object.assign({}, e); });
+            renderServiceList();
+            document.getElementById('watchModalInner').scrollTop = 0;
 
             currentTempImages = w.images ? [...w.images] : [];
             renderTempImagePreviews();
@@ -804,13 +966,19 @@
         async function deleteCurrentEditingWatch() {
             var id = document.getElementById('watchId').value;
             if (!id) return;
-            if (confirm("Delete this watch record?")) {
-                watches = watches.filter(function(w) { return w.id !== Number(id); });
+            var idx = watches.findIndex(function(w) { return w.id === Number(id); });
+            if (idx === -1) return;
+            var removed = watches.splice(idx, 1)[0];
+            await saveVaultData();
+            closeModal();
+            renderCategoryFilters();
+            render();
+            toast('Watch deleted', 'Undo', async function() {
+                watches.splice(Math.min(idx, watches.length), 0, removed);
                 await saveVaultData();
-                closeModal();
                 renderCategoryFilters();
                 render();
-            }
+            });
         }
 
         async function moveWatch(id, direction) {
@@ -854,6 +1022,7 @@
         function getShareItems(w) {
             var items = SHARE_FIELDS.map(function(f) { return { id: 'sb_' + f.id, label: f.label, val: f.get(w), def: f.def }; });
             customFieldDefs.forEach(function(n, i) { items.push({ id: 'sb_cf_' + i, label: n, val: (w.customFields || {})[n], def: true }); });
+            items.push({ id: 'sb_service', label: 'Service History', val: serviceText(w), def: false });
             items.push({ id: 'sb_desc', label: 'Notes', val: w.description, def: false });
             return items.filter(function(it) { return it.val; });
         }
@@ -873,15 +1042,16 @@
             if (!w) return;
             pushModalState();
             var rowCls = 'flex items-start gap-2 cursor-pointer hover:text-white';
-            var html = '<div class="flex gap-4 text-[10px] font-semibold pb-1"><button type="button" onclick="toggleAllShare(true)" class="text-indigo-400">Select all</button><button type="button" onclick="toggleAllShare(false)" class="text-slate-400">Clear all</button></div>';
+            var html = '<div class="flex gap-4 text-[11px] font-semibold pb-1"><button type="button" onclick="toggleAllShare(true)" class="text-indigo-400">Select all</button><button type="button" onclick="toggleAllShare(false)" class="text-slate-400">Clear all</button></div>';
             getShareItems(w).forEach(function(item) {
                 var v = String(item.val);
                 if (v.length > 60) v = v.slice(0, 60) + '…';
                 html += '<label class="' + rowCls + '"><input type="checkbox" id="' + item.id + '" ' + (item.def ? 'checked' : '') + ' class="rounded accent-indigo-600 mt-0.5"><span>' + esc(item.label) + ': ' + esc(v) + '</span></label>';
             });
             if (w.images && w.images.length) {
-                html += '<label class="' + rowCls + '"><input type="checkbox" id="sb_photos" checked class="rounded accent-indigo-600 mt-0.5"><span>Photos (' + w.images.length + ') — PDF only</span></label>';
+                html += '<label class="' + rowCls + '"><input type="checkbox" id="sb_photos" checked class="rounded accent-indigo-600 mt-0.5"><span>Photos (' + w.images.length + ') — PDF &amp; report image</span></label>';
             }
+            html += '<label class="' + rowCls + '"><input type="checkbox" id="sb_reportimg" checked class="rounded accent-indigo-600 mt-0.5"><span>Report image — attached to text &amp; email</span></label>';
             document.getElementById('shareOptionsBox').innerHTML = html;
             document.getElementById('shareModal').classList.remove('hidden');
             document.getElementById('shareModal').classList.add('flex');
@@ -896,7 +1066,7 @@
         function buildShareTextPayload() {
             var w = watches.find(function(item) { return item.id === Number(activeShareWatchId); });
             if (!w) return '';
-            var txt = "⌚ Watch Details Report\n";
+            var txt = "Watch Details\n";
             getShareItems(w).forEach(function(it) {
                 if (isShareChecked(it.id)) txt += it.label + ": " + it.val + "\n";
             });
@@ -907,23 +1077,185 @@
             return watches.find(function(item) { return item.id === Number(activeShareWatchId); });
         }
 
-        function executeShareText() {
-            var w = getShareWatch();
-            if (!w) return;
-            var txt = buildShareTextPayload();
-            closeShareModal();
-            var titleStr = (w.brand || '') + (w.model ? ' ' + w.model : '');
-            if (navigator.share) navigator.share({ title: titleStr, text: txt }).catch(function() {});
-            else prompt("Copy report to share:", txt);
+        function getReportModel(w) {
+            var sel = getShareItems(w).filter(function(it) { return isShareChecked(it.id); });
+            var byId = {};
+            sel.forEach(function(it) { byId[it.id] = it; });
+            var topDefs = [['sb_val', 'Estimated Value', 'g'], ['sb_mov', 'Movement', ''], ['sb_ref', 'Reference No.', 'm'], ['sb_sn', 'Serial Number', 'm']];
+            var skip = ['sb_brand', 'sb_desc', 'sb_val', 'sb_mov', 'sb_ref', 'sb_sn'];
+            return {
+                title: byId.sb_brand ? String(byId.sb_brand.val) : '',
+                top: topDefs.filter(function(d) { return byId[d[0]]; }).map(function(d) { return { label: d[1], val: String(byId[d[0]].val), cls: d[2] }; }),
+                specs: sel.filter(function(it) { return skip.indexOf(it.id) === -1; }).map(function(it) { return { label: it.label, val: String(it.val), cls: '' }; }),
+                notes: byId.sb_desc ? String(byId.sb_desc.val) : ''
+            };
         }
 
-        function executeEmailReport() {
+        function loadImg(src) {
+            return new Promise(function(res) {
+                var im = new Image();
+                if (!/^data:/.test(src)) im.crossOrigin = 'anonymous';
+                im.onload = function() { res(im); };
+                im.onerror = function() { res(null); };
+                im.src = src;
+            });
+        }
+
+        function wrapLines(x, text, maxW) {
+            var out = [];
+            String(text).split('\n').forEach(function(par) {
+                var line = '';
+                par.split(' ').forEach(function(wd) {
+                    var t = line ? line + ' ' + wd : wd;
+                    if (x.measureText(t).width > maxW && line) { out.push(line); line = wd; } else line = t;
+                });
+                out.push(line);
+            });
+            return out;
+        }
+
+        async function renderReportImage(w) {
+            if (!isShareChecked('sb_reportimg')) return null;
+            try {
+                var m = getReportModel(w);
+                var imgs = isShareChecked('sb_photos') ? (w.images || []) : [];
+                var loaded = (await Promise.all(imgs.map(loadImg))).filter(Boolean);
+                var W = 1080, P = 48, IW = W - 2 * P, F = '-apple-system, Roboto, Helvetica, Arial, sans-serif';
+                var c = document.createElement('canvas');
+                c.width = W; c.height = 8000;
+                var x = c.getContext('2d');
+                x.fillStyle = '#0f172a'; x.fillRect(0, 0, W, 8000);
+                x.textBaseline = 'top';
+                var y = P;
+                function rr(px, py, pw, ph, r) {
+                    x.beginPath(); x.moveTo(px + r, py);
+                    x.arcTo(px + pw, py, px + pw, py + ph, r); x.arcTo(px + pw, py + ph, px, py + ph, r);
+                    x.arcTo(px, py + ph, px, py, r); x.arcTo(px, py, px + pw, py, r); x.closePath();
+                }
+                function drawImg(im, px, py, pw, ph, r) {
+                    x.save(); rr(px, py, pw, ph, r); x.clip(); x.drawImage(im, px, py, pw, ph); x.restore();
+                    rr(px, py, pw, ph, r); x.strokeStyle = '#1e293b'; x.lineWidth = 2; x.stroke();
+                }
+                function boxBg(h) { rr(P, y, IW, h, 36); x.fillStyle = '#020617'; x.fill(); x.strokeStyle = '#1e293b'; x.lineWidth = 2; x.stroke(); }
+                function heading(t) {
+                    x.font = 'bold 24px ' + F; x.letterSpacing = '3px'; x.fillStyle = '#94a3b8';
+                    x.fillText(t.toUpperCase(), P, y); x.letterSpacing = '0px'; y += 48;
+                }
+                function cellFont(cell) {
+                    return cell.cls === 'g' ? 'bold 40px ' + F : cell.cls === 'm' ? '34px ui-monospace, Menlo, Consolas, monospace' : '34px ' + F;
+                }
+                function drawGrid(cells) {
+                    if (!cells.length) return;
+                    var pad = 34, gap = 40, colW = (IW - 2 * pad - gap) / 2, rows = [];
+                    for (var i = 0; i < cells.length; i += 2) rows.push(cells.slice(i, i + 2));
+                    var hs = rows.map(function(row) {
+                        return Math.max.apply(null, row.map(function(cl) { x.font = cellFont(cl); cl.lines = wrapLines(x, cl.val, colW); return 34 + cl.lines.length * 46; }));
+                    });
+                    var boxH = 2 * pad + hs.reduce(function(a, b) { return a + b; }, 0) + (rows.length - 1) * 30;
+                    boxBg(boxH);
+                    var cy = y + pad;
+                    rows.forEach(function(row, ri) {
+                        row.forEach(function(cl, ci) {
+                            var cx = P + pad + ci * (colW + gap);
+                            x.font = 'bold 22px ' + F; x.letterSpacing = '2px'; x.fillStyle = '#94a3b8';
+                            x.fillText(cl.label.toUpperCase(), cx, cy); x.letterSpacing = '0px';
+                            x.font = cellFont(cl); x.fillStyle = cl.cls === 'g' ? '#34d399' : '#e2e8f0';
+                            cl.lines.forEach(function(ln, li) { x.fillText(ln, cx, cy + 34 + li * 46); });
+                        });
+                        cy += hs[ri] + 30;
+                    });
+                    y += boxH + 24;
+                }
+
+                if (loaded.length) {
+                    var cv = loaded[0], sc = Math.min(IW / cv.width, 520 / cv.height), dw = cv.width * sc, dh = cv.height * sc;
+                    drawImg(cv, (W - dw) / 2, y, dw, dh, 36); y += dh + 16;
+                    var H = 200, gp = 16, rows2 = [], cur = [], curW = 0;
+                    loaded.slice(1).forEach(function(im) {
+                        var w2 = im.width * H / im.height, add = (cur.length ? gp : 0) + w2;
+                        if (cur.length && curW + add > IW) { rows2.push(cur); cur = []; curW = 0; add = w2; }
+                        cur.push({ im: im, w: w2 }); curW += add;
+                    });
+                    if (cur.length) rows2.push(cur);
+                    rows2.forEach(function(row) {
+                        var rw = row.reduce(function(a, b) { return a + b.w; }, 0) + gp * (row.length - 1), px = (W - rw) / 2;
+                        row.forEach(function(it) { drawImg(it.im, px, y, it.w, H, 16); px += it.w + gp; });
+                        y += H + gp;
+                    });
+                    y += 8;
+                }
+                if (m.title) {
+                    x.font = 'bold 56px ' + F; x.fillStyle = '#ffffff';
+                    wrapLines(x, m.title, IW).forEach(function(ln) { x.fillText(ln, P, y); y += 68; });
+                    y += 10;
+                }
+                drawGrid(m.top);
+                if (m.specs.length) { y += 12; heading('Additional Specifications'); drawGrid(m.specs); }
+                if (m.notes) {
+                    y += 12; heading('Notes');
+                    x.font = '34px ' + F;
+                    var nl = wrapLines(x, m.notes, IW - 68), nh = 68 + nl.length * 46;
+                    boxBg(nh); x.fillStyle = '#e2e8f0';
+                    nl.forEach(function(ln, i) { x.fillText(ln, P + 34, y + 34 + i * 46); });
+                    y += nh + 24;
+                }
+                x.font = '22px ' + F; x.fillStyle = '#475569'; x.textAlign = 'center';
+                x.fillText('Watch Vault \u00b7 ' + new Date().toLocaleDateString(), W / 2, y + 8);
+                y += 60;
+                var out = document.createElement('canvas');
+                out.width = W; out.height = Math.min(y, 8000);
+                out.getContext('2d').drawImage(c, 0, 0, W, out.height, 0, 0, W, out.height);
+                var blob = await new Promise(function(res) { out.toBlob(res, 'image/png'); });
+                return blob ? new File([blob], 'watch-report.png', { type: 'image/png' }) : null;
+            } catch (e) { console.error(e); return null; }
+        }
+
+        async function getSharePhotoFiles(w) {
+            var files = [];
+            if (!isShareChecked('sb_photos')) return files;
+            var imgs = w.images || [];
+            for (var i = 0; i < imgs.length; i++) {
+                try {
+                    var blob = await (await fetch(imgs[i])).blob();
+                    files.push(new File([blob], 'watch-photo-' + (i + 1) + '.jpg', { type: blob.type || 'image/jpeg' }));
+                } catch (e) { /* skip photos that can't be read */ }
+            }
+            return files;
+        }
+
+        function canShareFiles(files) {
+            return files.length > 0 && navigator.canShare && navigator.canShare({ files: files });
+        }
+
+        async function executeShareText() {
             var w = getShareWatch();
             if (!w) return;
             var txt = buildShareTextPayload();
+            var reportImg = await renderReportImage(w);
+            var files = reportImg ? [reportImg] : [];
             closeShareModal();
             var titleStr = (w.brand || '') + (w.model ? ' ' + w.model : '');
-            window.location.href = "mailto:?subject=" + encodeURIComponent("Watch Specification: " + titleStr) + "&body=" + encodeURIComponent(txt);
+            var data = { title: titleStr, text: txt };
+            if (canShareFiles(files)) { data.files = files; data.text = 'Attached are the watch details for ' + titleStr + '.'; }
+            if (navigator.share) navigator.share(data).catch(function() {});
+            else if (navigator.clipboard) navigator.clipboard.writeText(txt).then(function() { toast("Details copied to clipboard"); });
+        }
+
+        async function executeEmailReport() {
+            var w = getShareWatch();
+            if (!w) return;
+            var txt = buildShareTextPayload();
+            var reportImg = await renderReportImage(w);
+            var files = reportImg ? [reportImg] : [];
+            closeShareModal();
+            var titleStr = (w.brand || '') + (w.model ? ' ' + w.model : '');
+            var subject = "Watch Details";
+            if (canShareFiles(files)) {
+                navigator.share({ title: subject, text: 'Attached are the watch details for ' + titleStr + '.', files: files }).catch(function() {});
+                return;
+            }
+            if (files.length) toast("This browser can't attach the report image to an email automatically, so the email will open with the details as text instead.");
+            window.location.href = "mailto:?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(txt);
         }
 
         function executeGeneratePDF() {
@@ -931,7 +1263,7 @@
             if (!w) return;
             var sel = getShareItems(w).filter(function(it) { return isShareChecked(it.id); });
             var withPhotos = isShareChecked('sb_photos');
-            if (!sel.length && !withPhotos) { alert('Select at least one item to include.'); return; }
+            if (!sel.length && !withPhotos) { toast('Select at least one item to include.'); return; }
             var byId = {};
             sel.forEach(function(it) { byId[it.id] = it; });
             function cell(label, val, cls) {
@@ -948,10 +1280,10 @@
                 '.wrap{max-width:640px;margin:0 auto;padding:22px 24px}' +
                 '.cover{display:block;max-width:100%;max-height:260px;width:auto;height:auto;margin:0 auto;border-radius:18px;border:1px solid #1e293b}' +
                 'h1{color:#fff;font-size:26px;margin:18px 0 16px;break-after:avoid}' +
-                '.h{color:#64748b;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:22px 0 8px;break-after:avoid}' +
+                '.h{color:#94a3b8;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:22px 0 8px;break-after:avoid}' +
                 '.box{background:#020617;border:1px solid #1e293b;border-radius:18px;padding:16px 18px;display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;break-inside:avoid}' +
-                '.l{color:#64748b;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}' +
-                '.v{font-size:15px;color:#e2e8f0;word-break:break-word}.g{color:#34d399;font-weight:700;font-size:18px}' +
+                '.l{color:#94a3b8;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}' +
+                '.v{font-size:15px;color:#e2e8f0;word-break:break-word;white-space:pre-wrap}.g{color:#34d399;font-weight:700;font-size:18px}' +
                 '.m{font-family:ui-monospace,Menlo,Consolas,monospace}.note{display:block;white-space:pre-wrap}' +
                 '.grid{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:10px}' +
                 '.grid img{flex:0 0 auto;width:auto;height:130px;max-width:100%;border-radius:12px;border:1px solid #1e293b;break-inside:avoid}' +
@@ -968,7 +1300,7 @@
 
             closeShareModal();
             var win = window.open('', '_blank', 'width=700,height=900');
-            if (!win) { alert('Pop-up blocked. Allow pop-ups for this site to print or save the report as PDF.'); return; }
+            if (!win) { toast('Pop-up blocked. Allow pop-ups for this site to print or save the report as PDF.'); return; }
             win.document.write('<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Watch Report</title><style>' + css + '</style></head><body>' + body + '</body></html>');
             win.document.close();
             var els = Array.from(win.document.images), pending = els.length, printed = false;
@@ -989,6 +1321,9 @@
             dl.click();
             dl.remove();
             setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+            setLastBackup();
+            renderBackupStatus();
+            toast('Backup saved');
         }
 
         function importBackup(e) {
@@ -1005,8 +1340,9 @@
                     var cats = (!Array.isArray(parsed) && Array.isArray(parsed.categories)) ? parsed.categories.map(String).filter(Boolean) : [];
                     var cfs = (!Array.isArray(parsed) && Array.isArray(parsed.customFields)) ? parsed.customFields.map(String).filter(Boolean) : [];
                     imported.forEach(function(w) { Object.keys(w.customFields || {}).forEach(function(k) { if (cfs.indexOf(k) === -1) cfs.push(k); }); });
-                    var replace = confirm("Import " + imported.length + " watches.\n\nOK = REPLACE your current collection\nCancel = choose merge instead");
-                    if (!replace && !confirm("Merge these watches into your current collection? (Same-ID watches are updated.)")) return;
+                    var merge = await uiConfirm("Import " + imported.length + " watches.\nMerge them into your current collection? (Same-ID watches are updated.)", "Merge");
+                    var replace = false;
+                    if (!merge) { replace = await uiConfirm("Replace your whole collection with this backup instead?", "Replace", true); if (!replace) return; }
                     if (replace) {
                         watches = imported;
                         if (cats.length) allCategories = cats;
@@ -1022,66 +1358,225 @@
                     var ok = await saveVaultData();
                     renderCategoryFilters();
                     render();
-                    if (ok) alert("Collection imported!");
-                } catch (err) { alert("Invalid JSON backup file format."); }
+                    if (ok) toast("Collection imported!");
+                } catch (err) { toast("Invalid JSON backup file format."); }
             };
             reader.readAsText(file);
             input.value = '';
         }
 
+        var currentTempService = [], searchQuery = '', dragState = null, svcNotified = false;
+        var sortMode = (function() { try { return localStorage.getItem('wv_sort') || 'custom'; } catch (e) { return 'custom'; } })();
+
+        // ----- in-app dialogs & toasts -----
+        function uiDialog(msg, o) {
+            return new Promise(function(resolve) {
+                var d = document.getElementById('uiDialog'), inp = document.getElementById('uiDialogInput');
+                var ok = document.getElementById('uiDialogOk'), cancel = document.getElementById('uiDialogCancel');
+                document.getElementById('uiDialogMsg').textContent = msg;
+                inp.classList.toggle('hidden', !o.input);
+                inp.value = ''; inp.placeholder = o.placeholder || '';
+                ok.textContent = o.ok || 'OK';
+                ok.className = (o.danger ? 'bg-red-600' : 'bg-indigo-600') + ' text-white font-semibold text-sm px-5 py-2.5 rounded-xl';
+                d.classList.remove('hidden'); d.classList.add('flex');
+                function done(v) { d.classList.add('hidden'); d.classList.remove('flex'); ok.onclick = cancel.onclick = inp.onkeydown = null; resolve(v); }
+                ok.onclick = function() { done(o.input ? inp.value : true); };
+                cancel.onclick = function() { done(o.input ? null : false); };
+                inp.onkeydown = function(e) { if (e.key === 'Enter') { e.preventDefault(); ok.onclick(); } };
+                if (o.input) setTimeout(function() { inp.focus(); }, 60);
+            });
+        }
+        function uiPrompt(msg, placeholder) { return uiDialog(msg, { input: true, placeholder: placeholder, ok: 'Add' }); }
+        function uiConfirm(msg, okLabel, danger) { return uiDialog(msg, { ok: okLabel || 'OK', danger: danger }); }
+        function toast(msg, actionLabel, actionFn) {
+            var box = document.getElementById('toastBox');
+            if (!box) return;
+            var t = document.createElement('div');
+            t.className = 'pointer-events-auto bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-2xl px-4 py-3 shadow-xl flex items-center gap-4 max-w-sm';
+            var sp = document.createElement('span'); sp.textContent = msg; t.appendChild(sp);
+            if (actionFn) {
+                var b = document.createElement('button');
+                b.textContent = actionLabel || 'Undo'; b.className = 'text-indigo-400 font-bold text-sm px-1 py-1';
+                b.onclick = function() { actionFn(); t.remove(); };
+                t.appendChild(b);
+            }
+            box.appendChild(t);
+            setTimeout(function() { t.remove(); }, actionFn ? 7000 : 3500);
+        }
+
+        // ----- backup reminder -----
+        function getLastBackup() { try { return Number(localStorage.getItem('wv_last_backup')) || 0; } catch (e) { return 0; } }
+        function setLastBackup() { try { localStorage.setItem('wv_last_backup', String(Date.now())); } catch (e) {} }
+        function renderBackupStatus() {
+            var el = document.getElementById('backupStatus');
+            if (!el) return;
+            var t = getLastBackup();
+            if (!t) { el.className = 'text-xs text-center text-amber-400 -mt-2'; el.textContent = '\u26a0 No backup yet. Tap Export Backup to protect your collection.'; return; }
+            var days = Math.floor((Date.now() - t) / 86400000), stale = days >= 30;
+            el.className = 'text-xs text-center -mt-2 ' + (stale ? 'text-amber-400' : 'text-slate-400');
+            el.textContent = (stale ? '\u26a0 ' : '') + 'Last backup: ' + (days === 0 ? 'today' : days === 1 ? 'yesterday' : days + ' days ago') + (stale ? '. Time to back up again.' : '');
+        }
+
+        // ----- service history -----
+        function todayStr() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+        function addServiceEntry() {
+            var date = document.getElementById('svcDate').value || todayStr();
+            var note = document.getElementById('svcNote').value.trim();
+            var cost = document.getElementById('svcCost').value;
+            var next = document.getElementById('svcNext').value;
+            if (!note && !cost && !next) { toast('Enter what was done, a cost or a next-due date.'); return; }
+            currentTempService.push({ id: Date.now() + currentTempService.length, date: date, note: note, cost: cost, next: next });
+            ['svcDate', 'svcNote', 'svcCost', 'svcNext'].forEach(function(id) { document.getElementById(id).value = ''; });
+            renderServiceList();
+        }
+        function flushServiceInputs() {
+            if (document.getElementById('svcNote').value.trim() || document.getElementById('svcCost').value || document.getElementById('svcNext').value) addServiceEntry();
+        }
+        function removeServiceEntry(i) { currentTempService.splice(i, 1); renderServiceList(); }
+        function renderServiceList() {
+            var c = document.getElementById('serviceList');
+            if (!c) return;
+            if (!currentTempService.length) { c.innerHTML = '<p class="text-xs text-slate-400">No service entries yet.</p>'; return; }
+            c.innerHTML = currentTempService.map(function(e, i) {
+                return '<div class="flex justify-between items-start gap-2 bg-slate-950 border border-slate-800 rounded-xl p-3"><div><div class="text-xs text-slate-400">' + esc(e.date || '') + (e.cost ? ' \u00b7 $' + esc(e.cost) : '') + (e.next ? ' \u00b7 next ' + esc(e.next) : '') + '</div><div class="text-sm text-slate-200">' + esc(e.note || 'Service') + '</div></div><button type="button" onclick="removeServiceEntry(' + i + ')" class="text-red-400 text-xs font-semibold px-2 py-2">Remove</button></div>';
+            }).join('');
+        }
+        function sortedService(w) { return (w.serviceLog || []).slice().sort(function(a, b) { return String(b.date).localeCompare(String(a.date)); }); }
+        function serviceText(w) {
+            return sortedService(w).map(function(e) { return (e.date || '') + ' - ' + (e.note || 'Service') + (e.cost ? ' ($' + e.cost + ')' : '') + (e.next ? ' [next due ' + e.next + ']' : ''); }).join('\n');
+        }
+        function serviceStatus(w) {
+            var nexts = (w.serviceLog || []).map(function(e) { return e.next; }).filter(Boolean).sort();
+            if (!nexts.length) return null;
+            var next = nexts[nexts.length - 1], t0 = new Date(todayStr() + 'T00:00:00'), days = Math.round((new Date(next + 'T00:00:00') - t0) / 86400000);
+            return { next: next, days: days, overdue: days < 0, soon: days >= 0 && days <= 30 };
+        }
+        function renderDetailService(w) {
+            var el = document.getElementById('detServiceSection');
+            if (!el) return;
+            var log = sortedService(w);
+            if (!log.length) { el.innerHTML = ''; return; }
+            var st = serviceStatus(w), line = '';
+            if (st) line = '<div class="mb-2 text-sm font-semibold ' + (st.overdue ? 'text-red-400' : st.soon ? 'text-amber-400' : 'text-slate-300') + '">Next service: ' + esc(st.next) + (st.overdue ? ' (overdue)' : st.soon ? ' (due soon)' : '') + '</div>';
+            el.innerHTML = '<h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Service History</h4>' + line +
+                '<div class="space-y-3 bg-slate-950 p-3 rounded-2xl border border-slate-800/80">' + log.map(function(e) {
+                    return '<div><div class="text-xs text-slate-400">' + esc(e.date || '') + (e.cost ? ' \u00b7 $' + esc(Number(e.cost).toLocaleString()) : '') + '</div><div class="text-sm text-slate-200">' + esc(e.note || 'Service') + '</div></div>';
+                }).join('') + '</div>';
+        }
+
+        // ----- search / sort -----
+        function onSearch(v) { searchQuery = v; render(); }
+        function onSort(v) { sortMode = v; try { localStorage.setItem('wv_sort', v); } catch (e) {} render(); }
+        function watchSearchText(w) {
+            return [w.brand, w.model, w.refNumber, w.serialNumber, w.description, w.movementType, w.caseMaterial, w.bandMaterial, (w.categories || []).join(' '), Object.keys(w.customFields || {}).map(function(k) { return w.customFields[k]; }).join(' '), serviceText(w)].join(' ').toLowerCase();
+        }
+        function sortWatches(arr) {
+            var a = arr.slice(), num = function(v) { return Number(v) || 0; }, name = function(w) { return ((w.brand || '') + ' ' + (w.model || '')).toLowerCase(); };
+            if (sortMode === 'value-desc') a.sort(function(x, y) { return num(y.currentValue) - num(x.currentValue); });
+            else if (sortMode === 'value-asc') a.sort(function(x, y) { return num(x.currentValue) - num(y.currentValue); });
+            else if (sortMode === 'brand') a.sort(function(x, y) { return name(x).localeCompare(name(y)); });
+            else if (sortMode === 'added') a.sort(function(x, y) { return y.id - x.id; });
+            else if (sortMode === 'purchase') a.sort(function(x, y) { return String(y.purchaseDate || '').localeCompare(String(x.purchaseDate || '')); });
+            return a;
+        }
+
+        // ----- drag to reorder -----
+        document.addEventListener('pointerdown', function(e) {
+            var h = e.target.closest ? e.target.closest('.drag-handle') : null;
+            if (!h) return;
+            var card = h.closest('[data-wid]');
+            if (!card) return;
+            e.preventDefault();
+            try { document.getElementById('watchList').setPointerCapture(e.pointerId); } catch (err) {}
+            dragState = { card: card, pid: e.pointerId };
+            card.classList.add('dragging');
+        });
+        document.addEventListener('pointermove', function(e) {
+            if (!dragState || e.pointerId !== dragState.pid) return;
+            var list = document.getElementById('watchList'), card = dragState.card, y = e.clientY;
+            if (y < 90) window.scrollBy(0, -14); else if (y > window.innerHeight - 90) window.scrollBy(0, 14);
+            var sibs = Array.prototype.filter.call(list.children, function(c) { return c !== card; });
+            for (var i = 0; i < sibs.length; i++) {
+                var r = sibs[i].getBoundingClientRect();
+                if (y >= r.top && y <= r.bottom) {
+                    list.insertBefore(card, y < r.top + r.height / 2 ? sibs[i] : sibs[i].nextSibling);
+                    break;
+                }
+            }
+        });
+        async function endDrag(e) {
+            if (!dragState || e.pointerId !== dragState.pid) return;
+            dragState.card.classList.remove('dragging');
+            dragState = null;
+            var ids = Array.prototype.map.call(document.getElementById('watchList').children, function(c) { return Number(c.dataset.wid); });
+            var set = {}, slots = [], byId = {};
+            ids.forEach(function(id) { set[id] = 1; });
+            watches.forEach(function(w, i) { byId[w.id] = w; if (set[w.id]) slots.push(i); });
+            var changed = false;
+            ids.forEach(function(id, k) { if (watches[slots[k]] !== byId[id]) changed = true; watches[slots[k]] = byId[id]; });
+            if (changed) { await saveVaultData(); toast('Order saved'); }
+            render();
+        }
+        document.addEventListener('pointerup', endDrag);
+        document.addEventListener('pointercancel', endDrag);
+
         function render() {
-            var totalVal = watches.reduce(function(sum, w) {
-                return sum + (Number(w.currentValue) || 0);
-            }, 0);
+            var totalVal = watches.reduce(function(sum, w) { return sum + (Number(w.currentValue) || 0); }, 0);
             var headerColEl = document.getElementById('headerCollectionVal');
             if (headerColEl) headerColEl.innerText = '$' + totalVal.toLocaleString();
+            renderBackupStatus();
+            var sel = document.getElementById('sortSelect');
+            if (sel && sel.value !== sortMode) sel.value = sortMode;
 
             var list = document.getElementById('watchList');
             if (!list) return;
-
-            var filtered = activeCategoryFilter === 'All' ? watches : watches.filter(function(w) { 
-                return w.categories && w.categories.includes(activeCategoryFilter); 
+            var q = searchQuery.trim().toLowerCase();
+            var filtered = watches.filter(function(w) {
+                return (activeCategoryFilter === 'All' || (w.categories && w.categories.includes(activeCategoryFilter))) && (!q || watchSearchText(w).indexOf(q) !== -1);
             });
+            var canDrag = sortMode === 'custom' && !q;
+            if (sortMode !== 'custom') filtered = sortWatches(filtered);
 
-            if (!filtered || !filtered.length) {
-                list.innerHTML = '<div class="text-center py-12 text-slate-500 text-xs font-medium bg-slate-900 border border-slate-800 rounded-2xl">No watches found in this category.</div>';
+            if (!filtered.length) {
+                list.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm font-medium bg-slate-900 border border-slate-800 rounded-2xl">' + (q ? 'No watches match "' + esc(searchQuery.trim()) + '".' : 'No watches found in this category.') + '</div>';
                 return;
             }
 
-            list.innerHTML = filtered.map(function(w, idx) {
+            list.innerHTML = filtered.map(function(w) {
                 var imgCover = (w.images && w.images.length) ? '<img src="' + esc(w.images[0]) + '" class="w-full h-44 object-cover cursor-pointer" onclick="openDetailModal(' + w.id + ')">' : '';
                 var displayTitle = esc((w.brand || '') + (w.model ? ' ' + w.model : ''));
-                
-                var categoryBadges = w.categories ? w.categories.map(function(c) {
-                    return '<span class="bg-indigo-950/80 text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-800/50">' + esc(c) + '</span>';
-                }).join('') : '<span class="bg-indigo-950/80 text-indigo-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-indigo-800/50">General</span>';
+                var categoryBadges = (w.categories || ['General']).map(function(c) {
+                    return '<span class="bg-indigo-950/80 text-indigo-300 text-[11px] font-bold px-2 py-0.5 rounded-full border border-indigo-800/50">' + esc(c) + '</span>';
+                }).join('');
+                var st = serviceStatus(w);
+                var svcBadge = st && (st.overdue || st.soon) ? '<span class="' + (st.overdue ? 'bg-red-950/80 text-red-300 border-red-800/60' : 'bg-amber-950/80 text-amber-300 border-amber-800/60') + ' text-[11px] font-bold px-2 py-0.5 rounded-full border">' + (st.overdue ? 'Service overdue' : 'Service due soon') + '</span>' : '';
+                var handle = canDrag ? '<div class="drag-handle flex items-center justify-center w-11 h-11 -mr-2 text-slate-400 text-xl select-none cursor-grab" style="touch-action:none" title="Press and drag to reorder">\u2630</div>' : '';
 
-                var moveButtons = activeCategoryFilter === 'All' ? 
-                    '<div class="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">' +
-                        '<button onclick="moveWatch(' + w.id + ', -1)" ' + (idx === 0 ? 'disabled class="text-slate-700 px-1.5 text-xs cursor-not-allowed"' : 'class="text-slate-300 hover:text-white px-1.5 text-xs"') + '>↑</button>' +
-                        '<button onclick="moveWatch(' + w.id + ', 1)" ' + (idx === filtered.length - 1 ? 'disabled class="text-slate-700 px-1.5 text-xs cursor-not-allowed"' : 'class="text-slate-300 hover:text-white px-1.5 text-xs"') + '>↓</button>' +
-                    '</div>' : '';
-
-                return '<div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg transition-all hover:border-slate-700">' +
+                return '<div data-wid="' + w.id + '" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg transition-all hover:border-slate-700">' +
                     imgCover +
                     '<div class="p-4 space-y-2 cursor-pointer" onclick="openDetailModal(' + w.id + ')">' +
                         '<div class="flex justify-between items-center gap-2">' +
-                            '<span class="text-emerald-400 font-bold text-sm">' + (w.currentValue ? '$' + Number(w.currentValue).toLocaleString() : '$0') + '</span>' +
-                            '<div class="flex flex-wrap gap-1 justify-end">' + categoryBadges + '</div>' +
+                            '<span class="text-emerald-400 font-bold text-base">' + (w.currentValue ? '$' + Number(w.currentValue).toLocaleString() : '$0') + '</span>' +
+                            '<div class="flex flex-wrap gap-1 justify-end">' + categoryBadges + svcBadge + '</div>' +
                         '</div>' +
-                        '<h3 class="text-base font-bold text-white hover:text-indigo-400">' + displayTitle + '</h3>' +
-                        (w.refNumber ? '<p class="text-xs text-indigo-300/80 font-mono">Ref: ' + esc(w.refNumber) + '</p>' : '') +
-                        '<p class="text-xs text-slate-400 leading-relaxed line-clamp-2">' + esc(w.description || 'No description provided.') + '</p>' +
+                        '<h3 class="text-lg font-bold text-white hover:text-indigo-400">' + displayTitle + '</h3>' +
+                        (w.refNumber ? '<p class="text-sm text-indigo-300/80 font-mono">Ref: ' + esc(w.refNumber) + '</p>' : '') +
+                        '<p class="text-sm text-slate-400 leading-relaxed line-clamp-2">' + esc(w.description || 'No description provided.') + '</p>' +
                     '</div>' +
-                    '<div class="flex justify-between items-center px-4 pb-4 pt-2 border-t border-slate-800/80">' +
-                        '<div class="flex gap-1.5 items-center">' +
-                            '<button onclick="editWatch(' + w.id + ')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all">Edit</button>' +
-                            '<button onclick="openShareModal(' + w.id + ')" class="bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-300 text-xs font-semibold px-3 py-1.5 rounded-lg border border-indigo-800/50 transition-all">Share / PDF</button>' +
-                        '</div>' +
-                        '<div>' + moveButtons + '</div>' +
+                    '<div class="flex justify-between items-center px-4 pb-3 pt-3 border-t border-slate-800/80">' +
+                        '<div class="flex gap-2 items-center">' +
+                            '<button onclick="editWatch(' + w.id + ')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all">Edit</button>' +
+                            '<button onclick="openShareModal(' + w.id + ')" class="bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-300 text-sm font-semibold px-4 py-2.5 rounded-xl border border-indigo-800/50 transition-all">Share / PDF</button>' +
+                        '</div>' + handle +
                     '</div>' +
                 '</div>';
             }).join('');
+
+            if (!svcNotified) {
+                svcNotified = true;
+                var due = watches.filter(function(w) { var s = serviceStatus(w); return s && (s.overdue || s.soon); }).length;
+                if (due) setTimeout(function() { toast(due + (due > 1 ? ' watches are' : ' watch is') + ' due for service'); }, 700);
+            }
         }
     </script>
 </body>

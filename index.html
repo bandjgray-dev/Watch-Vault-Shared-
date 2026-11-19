@@ -186,7 +186,11 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Sale Price ($)</label>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Asking Price ($)</label>
+                        <input type="number" id="askingPrice" placeholder="12000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Sold Price ($)</label>
                         <input type="number" id="salePrice" placeholder="15000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                     <div>
@@ -722,6 +726,7 @@
                 purchaseDate: document.getElementById('purchaseDate').value,
                 purchasePrice: document.getElementById('purchasePrice').value,
                 salePrice: document.getElementById('salePrice').value,
+                askingPrice: document.getElementById('askingPrice').value,
                 dateOfManufacture: document.getElementById('dateOfManufacture').value,
                 description: document.getElementById('description').value,
                 customFields: readCustomFieldValues(),
@@ -769,7 +774,8 @@
                 { label: 'Case Material', val: w.caseMaterial },
                 { label: 'Purchase Date', val: w.purchaseDate },
                 { label: 'Purchase Price', val: w.purchasePrice ? '$' + Number(w.purchasePrice).toLocaleString() : null },
-                { label: 'Sale Price', val: w.salePrice ? '$' + Number(w.salePrice).toLocaleString() : null },
+                { label: 'Asking Price', val: w.askingPrice ? '$' + Number(w.askingPrice).toLocaleString() : null },
+                { label: 'Sold Price', val: w.salePrice ? '$' + Number(w.salePrice).toLocaleString() : null },
                 { label: 'Mfg Date', val: w.dateOfManufacture }
             ].concat(customFieldDefs.map(function(n) { return { label: n, val: (w.customFields || {})[n] }; })).filter(function(s) { return s.val; });
 
@@ -945,6 +951,7 @@
             document.getElementById('purchaseDate').value = w.purchaseDate || '';
             document.getElementById('purchasePrice').value = w.purchasePrice || '';
             document.getElementById('salePrice').value = w.salePrice || '';
+            document.getElementById('askingPrice').value = w.askingPrice || '';
             document.getElementById('dateOfManufacture').value = w.dateOfManufacture || '';
             document.getElementById('description').value = w.description || '';
 
@@ -1015,7 +1022,8 @@
             { id: 'cmat', label: 'Case Material', def: true, get: function(w) { return w.caseMaterial; } },
             { id: 'pdate', label: 'Purchase Date', def: false, get: function(w) { return w.purchaseDate; } },
             { id: 'pprice', label: 'Purchase Price', def: false, get: function(w) { return shareMoney(w.purchasePrice); } },
-            { id: 'sprice', label: 'Sale Price', def: false, get: function(w) { return shareMoney(w.salePrice); } },
+            { id: 'ask', label: 'Asking Price', def: true, get: function(w) { return shareMoney(w.askingPrice); } },
+            { id: 'sprice', label: 'Sold Price', def: false, get: function(w) { return shareMoney(w.salePrice); } },
             { id: 'mfg', label: 'Mfg Date', def: true, get: function(w) { return w.dateOfManufacture; } }
         ];
 
@@ -1311,12 +1319,59 @@
             setTimeout(go, 8000);
         }
 
-        function exportBackup() {
+        async function getBackupHandle() {
+            try {
+                var db = await openIDB();
+                return await new Promise(function(res) {
+                    var r = db.transaction('vault', 'readonly').objectStore('vault').get('backup_handle');
+                    r.onsuccess = function() { db.close(); res(r.result || null); };
+                    r.onerror = function() { db.close(); res(null); };
+                });
+            } catch (e) { return null; }
+        }
+
+        async function setBackupHandle(h) {
+            try {
+                var db = await openIDB();
+                await new Promise(function(res) {
+                    var tx = db.transaction('vault', 'readwrite'), st = tx.objectStore('vault');
+                    if (h) st.put(h, 'backup_handle'); else st.delete('backup_handle');
+                    tx.oncomplete = function() { db.close(); res(); };
+                    tx.onerror = tx.onabort = function() { db.close(); res(); };
+                });
+            } catch (e) {}
+        }
+
+        async function exportBackup() {
             var blob = new Blob([JSON.stringify({ watches: watches, categories: allCategories, customFields: customFieldDefs }, null, 2)], { type: 'application/json' });
+            if ('showSaveFilePicker' in window && window.self === window.top) {
+                try {
+                    var handle = await getBackupHandle();
+                    if (handle) {
+                        var perm = await handle.queryPermission({ mode: 'readwrite' });
+                        if (perm !== 'granted') perm = await handle.requestPermission({ mode: 'readwrite' });
+                        if (perm !== 'granted') handle = null;
+                    }
+                    if (!handle) {
+                        handle = await window.showSaveFilePicker({ suggestedName: 'watch-vault-backup.json', types: [{ description: 'Watch Vault backup', accept: { 'application/json': ['.json'] } }] });
+                        await setBackupHandle(handle);
+                    }
+                    var wr = await handle.createWritable();
+                    await wr.write(blob);
+                    await wr.close();
+                    setLastBackup();
+                    renderBackupStatus();
+                    toast('Backup file updated: ' + handle.name);
+                    return;
+                } catch (err) {
+                    if (err && err.name === 'AbortError') return;
+                    console.error(err);
+                }
+            }
             var url = URL.createObjectURL(blob);
             var dl = document.createElement('a');
             dl.href = url;
-            dl.download = "watch_vault_backup_" + new Date().toISOString().slice(0, 10) + ".json";
+            dl.download = "watch-vault-backup.json";
             document.body.appendChild(dl);
             dl.click();
             dl.remove();
@@ -1521,7 +1576,10 @@
         document.addEventListener('pointercancel', endDrag);
 
         function render() {
-            var totalVal = watches.reduce(function(sum, w) { return sum + (Number(w.currentValue) || 0); }, 0);
+            var totalVal = watches.reduce(function(sum, w) {
+                var sold = String(w.salePrice == null ? '' : w.salePrice).trim() !== '';
+                return sold ? sum : sum + (Number(w.currentValue) || 0);
+            }, 0);
             var headerColEl = document.getElementById('headerCollectionVal');
             if (headerColEl) headerColEl.innerText = '$' + totalVal.toLocaleString();
             renderBackupStatus();
@@ -1543,7 +1601,11 @@
             }
 
             list.innerHTML = filtered.map(function(w) {
-                var imgCover = (w.images && w.images.length) ? '<img src="' + esc(w.images[0]) + '" class="w-full h-44 object-cover cursor-pointer" onclick="openDetailModal(' + w.id + ')">' : '';
+                var isSold = String(w.salePrice == null ? '' : w.salePrice).trim() !== '';
+                var hasImg = !!(w.images && w.images.length);
+                var imgCover = hasImg ? '<div class="relative"><img src="' + esc(w.images[0]) + '" class="w-full h-44 object-cover cursor-pointer" onclick="openDetailModal(' + w.id + ')">' +
+                    (isSold ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><span class="text-red-500 font-extrabold text-5xl tracking-[0.2em] -rotate-12 bg-black/35 px-4 py-1 rounded-lg" style="text-shadow:0 2px 8px rgba(0,0,0,.9)">SOLD</span></div>' : '') + '</div>' : '';
+                var soldInline = (isSold && !hasImg) ? '<span class="text-red-400 border border-red-700 bg-red-950/70 text-[11px] font-extrabold px-2 py-0.5 rounded-full tracking-wider">SOLD</span>' : '';
                 var displayTitle = esc((w.brand || '') + (w.model ? ' ' + w.model : ''));
                 var categoryBadges = (w.categories || ['General']).map(function(c) {
                     return '<span class="bg-indigo-950/80 text-indigo-300 text-[11px] font-bold px-2 py-0.5 rounded-full border border-indigo-800/50">' + esc(c) + '</span>';
@@ -1557,7 +1619,7 @@
                     '<div class="p-4 space-y-2 cursor-pointer" onclick="openDetailModal(' + w.id + ')">' +
                         '<div class="flex justify-between items-center gap-2">' +
                             '<span class="text-emerald-400 font-bold text-base">' + (w.currentValue ? '$' + Number(w.currentValue).toLocaleString() : '$0') + '</span>' +
-                            '<div class="flex flex-wrap gap-1 justify-end">' + categoryBadges + svcBadge + '</div>' +
+                            '<div class="flex flex-wrap gap-1 justify-end">' + categoryBadges + svcBadge + soldInline + '</div>' +
                         '</div>' +
                         '<h3 class="text-lg font-bold text-white hover:text-indigo-400">' + displayTitle + '</h3>' +
                         (w.refNumber ? '<p class="text-sm text-indigo-300/80 font-mono">Ref: ' + esc(w.refNumber) + '</p>' : '') +

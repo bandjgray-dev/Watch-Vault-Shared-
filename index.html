@@ -73,6 +73,9 @@
             </select>
         </div>
 
+        <!-- Status Filter -->
+        <div id="statusFilters" class="grid grid-cols-4 gap-2"></div>
+
         <!-- Horizontal Scroll Category Bar -->
         <div class="flex gap-2 overflow-x-auto no-scrollbar py-1" id="catFilters">
             <button onclick="setFilter('All', this)" class="filter-btn active bg-indigo-600 text-white text-xs font-semibold px-4 py-2.5 rounded-full whitespace-nowrap border border-indigo-500 shadow-sm transition-all">All</button>
@@ -1520,6 +1523,24 @@
         }
 
         // ----- search / sort -----
+        var statusFilter = 'all';
+        function watchStatus(w) {
+            if (String(w.salePrice == null ? '' : w.salePrice).trim() !== '') return 'sold';
+            if (String(w.askingPrice == null ? '' : w.askingPrice).trim() !== '') return 'forsale';
+            return 'collection';
+        }
+        function setStatusFilter(v) { statusFilter = v; render(); }
+        function renderStatusFilters() {
+            var el = document.getElementById('statusFilters');
+            if (!el) return;
+            var counts = { all: watches.length, collection: 0, forsale: 0, sold: 0 };
+            watches.forEach(function(w) { counts[watchStatus(w)]++; });
+            var defs = [['all', 'All'], ['collection', 'Collection'], ['forsale', 'For Sale'], ['sold', 'Sold']];
+            el.innerHTML = defs.map(function(d) {
+                var on = statusFilter === d[0];
+                return '<button type="button" data-s="' + d[0] + '" onclick="setStatusFilter(this.dataset.s)" class="' + (on ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-900 text-slate-300 border-slate-800') + ' border rounded-xl py-2 text-xs font-semibold leading-tight">' + d[1] + '<span class="block text-[11px] opacity-80">' + counts[d[0]] + '</span></button>';
+            }).join('');
+        }
         function onSearch(v) { searchQuery = v; render(); }
         function onSort(v) { sortMode = v; try { localStorage.setItem('wv_sort', v); } catch (e) {} render(); }
         function watchSearchText(w) {
@@ -1583,6 +1604,7 @@
             var headerColEl = document.getElementById('headerCollectionVal');
             if (headerColEl) headerColEl.innerText = '$' + totalVal.toLocaleString();
             renderBackupStatus();
+            renderStatusFilters();
             var sel = document.getElementById('sortSelect');
             if (sel && sel.value !== sortMode) sel.value = sortMode;
 
@@ -1590,17 +1612,18 @@
             if (!list) return;
             var q = searchQuery.trim().toLowerCase();
             var filtered = watches.filter(function(w) {
-                return (activeCategoryFilter === 'All' || (w.categories && w.categories.includes(activeCategoryFilter))) && (!q || watchSearchText(w).indexOf(q) !== -1);
+                return (statusFilter === 'all' || watchStatus(w) === statusFilter) && (activeCategoryFilter === 'All' || (w.categories && w.categories.includes(activeCategoryFilter))) && (!q || watchSearchText(w).indexOf(q) !== -1);
             });
             var canDrag = sortMode === 'custom' && !q;
             if (sortMode !== 'custom') filtered = sortWatches(filtered);
 
             if (!filtered.length) {
-                list.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm font-medium bg-slate-900 border border-slate-800 rounded-2xl">' + (q ? 'No watches match "' + esc(searchQuery.trim()) + '".' : 'No watches found in this category.') + '</div>';
+                list.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm font-medium bg-slate-900 border border-slate-800 rounded-2xl">' + (q ? 'No watches match "' + esc(searchQuery.trim()) + '".' : 'No watches match these filters.') + '</div>';
                 return;
             }
 
             list.innerHTML = filtered.map(function(w) {
+                var forSaleBadge = watchStatus(w) === 'forsale' ? '<span class="bg-emerald-950/80 text-emerald-300 text-[11px] font-bold px-2 py-0.5 rounded-full border border-emerald-800/60">For sale</span>' : '';
                 var isSold = String(w.salePrice == null ? '' : w.salePrice).trim() !== '';
                 var hasImg = !!(w.images && w.images.length);
                 var imgCover = hasImg ? '<div class="relative"><img src="' + esc(w.images[0]) + '" class="w-full h-44 object-cover cursor-pointer" onclick="openDetailModal(' + w.id + ')">' +
@@ -1617,9 +1640,8 @@
                 return '<div data-wid="' + w.id + '" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg transition-all hover:border-slate-700">' +
                     imgCover +
                     '<div class="p-4 space-y-2 cursor-pointer" onclick="openDetailModal(' + w.id + ')">' +
-                        '<div class="flex justify-between items-center gap-2">' +
-                            '<span class="text-emerald-400 font-bold text-base">' + (w.currentValue ? '$' + Number(w.currentValue).toLocaleString() : '$0') + '</span>' +
-                            '<div class="flex flex-wrap gap-1 justify-end">' + categoryBadges + svcBadge + soldInline + '</div>' +
+                        '<div class="flex items-center gap-2">' +
+                            '<div class="flex flex-wrap gap-1.5">' + categoryBadges + forSaleBadge + svcBadge + soldInline + '</div>' +
                         '</div>' +
                         '<h3 class="text-lg font-bold text-white hover:text-indigo-400">' + displayTitle + '</h3>' +
                         (w.refNumber ? '<p class="text-sm text-indigo-300/80 font-mono">Ref: ' + esc(w.refNumber) + '</p>' : '') +
